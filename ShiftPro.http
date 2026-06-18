@@ -1,0 +1,6 @@
+@ShiftPro_HostAddress = http://localhost:5100
+
+GET {{ShiftPro_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
