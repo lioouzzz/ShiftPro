@@ -72,6 +72,7 @@ namespace ShiftPro.Services.Schedules
             }
 
 
+            //當天排班人數
             var dailyCount = await _context.Schedules.CountAsync(x => x.WorkDate == dto.WorkDate);
 
             if (dailyCount >= 2)
@@ -84,6 +85,22 @@ namespace ShiftPro.Services.Schedules
                 return null;
             }
 
+            //排班最多15天
+            var monthlyCount = await _context.Schedules
+                                                                     .CountAsync(x => x.WorkDate.Year == dto.WorkDate.Year &&
+                                                                     x.WorkDate.Month == dto.WorkDate.Month &&
+                                                                     x.EmployeeId == dto.EmployeeId);
+                                                                     
+            if (monthlyCount >= 15)
+            {
+                _logger.Write(new Log
+                {
+                    Status = ApiResultStatus.Failed,
+                    Message = "員工Id："+ dto.EmployeeId +"當月排班天數不可超過15天"
+                });
+                return null;
+            }
+            
             var scheduleData = new Schedule
             {
                 EmployeeId = dto.EmployeeId,

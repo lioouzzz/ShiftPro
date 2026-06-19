@@ -46,7 +46,7 @@ namespace ShiftPro.Controllers
 
             if (result == null)
             {
-                return BadRequest("排班失敗，請確認員工是否存在或當天人數已滿");
+                return BadRequest("請確認員工是否存在、當天人數是否已滿，或該員工本月是否已達 15 天");
             }
             return Ok(new {
                Message="創立Schedule成功",
