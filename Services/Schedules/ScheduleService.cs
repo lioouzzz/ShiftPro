@@ -59,6 +59,18 @@ namespace ShiftPro.Services.Schedules
                 return null;
             }
 
+
+            if (!IsNextMonth(dto.WorkDate))
+            {
+                _logger.Write(new Log
+                {
+                    Status = ApiResultStatus.Failed,
+                    Message = "只允許添加下個月份的排班"
+                });
+                return null;
+            }
+
+
             var schedule = await _context.Schedules.AnyAsync(x => x.EmployeeId == dto.EmployeeId && x.WorkDate == dto.WorkDate);
 
             if (schedule)
@@ -202,6 +214,17 @@ namespace ShiftPro.Services.Schedules
                                         EmployeeName = x.Employee.Name,
                                         WorkDate = x.WorkDate
                                     }).ToListAsync();
+        }
+
+
+        //只允許添加下個月的排班
+
+        private bool IsNextMonth(DateOnly workDate)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var nextMonth = today.AddMonths(1);
+
+            return workDate.Year == nextMonth.Year && workDate.Month == nextMonth.Month;
         }
     }
 }
