@@ -27,6 +27,7 @@ namespace ShiftPro.Services.Schedules
                                     {
                                         Id = x.Id,
                                         EmployeeId = x.EmployeeId,
+                                        EmployeeName=x.Employee.Name,
                                         WorkDate = x.WorkDate,
                                     }).ToListAsync();
         }
@@ -40,6 +41,7 @@ namespace ShiftPro.Services.Schedules
                             {
                                 Id = x.Id,
                                 EmployeeId = x.EmployeeId,
+                                EmployeeName = x.Employee.Name,
                                 WorkDate = x.WorkDate,
                             }).FirstOrDefaultAsync();
         }
@@ -148,6 +150,23 @@ namespace ShiftPro.Services.Schedules
             _context.Schedules.Remove(schedule);
             await _context.SaveChangesAsync();
             return true; 
+        }
+
+
+        // 指定查詢月份班表
+        public async Task<List<ScheduleDto>> GetMonthlySchedules(int year, int month)
+        {
+           return  await _context.Schedules
+                                    .Include(x => x.Employee)
+                                    .Where(x => x.WorkDate.Year == year && x.WorkDate.Month == month)
+                                    .OrderBy(x => x.WorkDate)
+                                    .ThenBy(x => x.EmployeeId)
+                                    .Select(x => new ScheduleDto {
+                                        Id = x.Id,
+                                        EmployeeId = x.EmployeeId,
+                                        EmployeeName = x.Employee.Name,
+                                        WorkDate = x.WorkDate
+                                    }).ToListAsync();
         }
     }
 }

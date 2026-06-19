@@ -83,5 +83,19 @@ namespace ShiftPro.Controllers
                 Result= result
             });
         }
+
+        [HttpGet("monthly")]
+        public async Task<IActionResult> GetMonthlySchedules([FromQuery] int year, [FromQuery] int month)
+        {
+            var result = await _service.GetMonthlySchedules(year, month);
+
+            if (result == null)
+            {
+
+                return BadRequest("查詢月份排班失敗");
+            }
+                return Ok( result );
+            }
+        
     }
 }

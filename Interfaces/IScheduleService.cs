@@ -9,5 +9,6 @@ namespace ShiftPro.Interfaces
         Task<ScheduleDto> CreateSchedule(CreateScheduleDto dto);
         Task<bool> UpdateSchedule(int id, UpdateScheduleDto dto);
         Task<bool> DeleteSchedule(int id);
+        Task<List<ScheduleDto>> GetMonthlySchedules(int year, int month);
     }
 }
