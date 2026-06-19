@@ -70,7 +70,7 @@ namespace ShiftPro.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteSchedule(int id)
+        public async Task<IActionResult> DeleteSchedule([FromRoute] int id)
         {
             var result =await _service.DeleteSchedule(id);
 
@@ -84,7 +84,7 @@ namespace ShiftPro.Controllers
             });
         }
 
-        [HttpGet("monthly")]
+        [HttpGet("Monthly")]
         public async Task<IActionResult> GetMonthlySchedules([FromQuery] int year, [FromQuery] int month)
         {
             var result = await _service.GetMonthlySchedules(year, month);
@@ -96,6 +96,18 @@ namespace ShiftPro.Controllers
             }
                 return Ok( result );
             }
-        
+
+
+        [HttpGet("EmployeeReport")]
+        public async Task<IActionResult> GetEmployeesMonthlyCount([FromQuery] int year, [FromQuery] int month)
+        {
+            var result  = await _service.GetMonthlyWorkDays(year, month);
+
+            if (result == null)
+            {
+                return BadRequest("無法取得當月員工排班天數");
+            }
+            return Ok( result );
+        }
     }
 }

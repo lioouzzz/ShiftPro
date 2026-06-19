@@ -227,6 +227,52 @@ namespace ShiftPro.Services.Schedules
         }
 
 
+        //員工當月上班次數
+
+        public async Task<List<EmployeeReportDto>>  GetMonthlyWorkDays(int year, int month)
+        {
+            //當月資料
+            var monthlyData = await _context.Schedules.
+                Include(x => x.Employee)
+                .Where(x => x.WorkDate.Year == year && x.WorkDate.Month == month)
+                .GroupBy(x => new
+                {
+                    x.EmployeeId,
+                    x.Employee.Name
+                })
+                .Select(g=>new 
+                {
+                    EmployeeId=g.Key.EmployeeId,  // 分組鍵
+                    EmployeeName =g.Key.Name,   // 分組鍵
+                    MonthlyWorkDays =g.Count()   //聚合結果
+                })
+                .ToListAsync();
+
+             //年度資料
+             var yearlyData= await _context.Schedules
+                                                  . Include(x => x.Employee)
+                                                  .Where(x=>x.WorkDate.Year==year)
+                                                  .GroupBy(x=>x.EmployeeId)
+                                                  .Select(g=>new {
+                                                       EmployeeId=g.Key,
+                                                      YearlyWorkDays = g.Count()
+                                                  })
+                                                   .ToDictionaryAsync(
+                                                        x => x.EmployeeId,
+                                                        x => x.YearlyWorkDays);
+
+            return monthlyData.Select(x => new EmployeeReportDto
+            {
+                EmployeeId = x.EmployeeId,
+                EmployeeName = x.EmployeeName,
+                MonthlyWorkDays=x.MonthlyWorkDays,
+                YearlyWorkDays= yearlyData.GetValueOrDefault(x.EmployeeId, 0) //沒資料預設給0
+            })
+                .OrderByDescending(x => x.MonthlyWorkDays)
+            .ToList();
+        }
+
+
         //只允許添加下個月的排班
         private bool IsNextMonth(DateOnly workDate)
         {
