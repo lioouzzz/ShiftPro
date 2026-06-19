@@ -72,6 +72,18 @@ namespace ShiftPro.Services.Schedules
             }
 
 
+            var dailyCount = await _context.Schedules.CountAsync(x => x.WorkDate == dto.WorkDate);
+
+            if (dailyCount >= 2)
+            {
+                _logger.Write(new Log
+                {
+                    Status = ApiResultStatus.Failed,
+                    Message = "當天排班人數已滿"
+                });
+                return null;
+            }
+
             var scheduleData = new Schedule
             {
                 EmployeeId = dto.EmployeeId,
@@ -81,10 +93,16 @@ namespace ShiftPro.Services.Schedules
             _context.Schedules.Add(scheduleData);
             await _context.SaveChangesAsync();
 
+
+        var employeeName =await  _context.Schedules
+                                                            .Include(x => x.Employee)
+                                                            .Where(x=>x.EmployeeId==dto.EmployeeId)
+                                                            .Select(x => x.Employee.Name).FirstOrDefaultAsync();
             return new ScheduleDto
             {
                 Id = scheduleData.Id,
                 EmployeeId = scheduleData.EmployeeId,
+                EmployeeName = employeeName,
                 WorkDate = scheduleData.WorkDate
             };
         }
