@@ -3,6 +3,7 @@ using ShiftPro.Data;
 using ShiftPro.Helpers;
 using ShiftPro.Interfaces;
 using ShiftPro.Services.Employees;
+using ShiftPro.Services.Schedules;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +24,10 @@ builder.Services.AddSingleton<FileLogger>();
 
 //註冊 EmployeeService
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+
+
+//註冊  ScheduleService
+builder.Services.AddScoped<IScheduleService, ScheduleService>();
 
 var app = builder.Build();
 
