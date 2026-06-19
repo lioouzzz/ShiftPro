@@ -3,6 +3,7 @@ using ShiftPro.Data;
 using ShiftPro.Helpers;
 using ShiftPro.Interfaces;
 using ShiftPro.Services.Employees;
+using ShiftPro.Services.Holidays;
 using ShiftPro.Services.Schedules;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,6 +30,8 @@ builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 //註冊  ScheduleService
 builder.Services.AddScoped<IScheduleService, ScheduleService>();
 
+//註冊  HolidayService
+builder.Services.AddScoped<IHolidayService, HolidayService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

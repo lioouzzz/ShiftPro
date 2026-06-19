@@ -11,11 +11,13 @@ namespace ShiftPro.Services.Schedules
     {
         private readonly FileLogger _logger;
         private readonly AppDbContext _context;
+        private readonly IHolidayService _holidayService;
 
-        public ScheduleService(FileLogger logger, AppDbContext context)
+        public ScheduleService(FileLogger logger, AppDbContext context, IHolidayService holidayService)
         {
             _logger = logger;
             _context = context;
+            _holidayService = holidayService;
         }
 
 
@@ -122,12 +124,25 @@ namespace ShiftPro.Services.Schedules
                 });
                 return null;
             }
-            
+
+            var holiday = await _holidayService.GetHolidayAsync(dto.WorkDate);
+
+            if (holiday is not null)
+            {
+                _logger.Write(new Log
+                {
+                    Status = ApiResultStatus.Failed,
+                    Message = "國定假日不可排班"
+                });
+            }
+
             var scheduleData = new Schedule
             {
                 EmployeeId = dto.EmployeeId,
                 WorkDate = dto.WorkDate,
             };
+
+
 
             _context.Schedules.Add(scheduleData);
             await _context.SaveChangesAsync();
