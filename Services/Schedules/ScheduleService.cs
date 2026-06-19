@@ -70,6 +70,16 @@ namespace ShiftPro.Services.Schedules
                 return null;
             }
 
+            if (IsWeekend(dto.WorkDate))
+            {
+                _logger.Write(new Log
+                {
+                    Status = ApiResultStatus.Failed,
+                    Message = "假日不可排班"
+                });
+                return null;
+            }
+
 
             var schedule = await _context.Schedules.AnyAsync(x => x.EmployeeId == dto.EmployeeId && x.WorkDate == dto.WorkDate);
 
@@ -218,13 +228,18 @@ namespace ShiftPro.Services.Schedules
 
 
         //只允許添加下個月的排班
-
         private bool IsNextMonth(DateOnly workDate)
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
             var nextMonth = today.AddMonths(1);
 
             return workDate.Year == nextMonth.Year && workDate.Month == nextMonth.Month;
+        }
+
+        //是否為假日
+        private bool IsWeekend(DateOnly workDate)
+        {
+            return workDate.DayOfWeek== DayOfWeek.Saturday || workDate.DayOfWeek== DayOfWeek.Sunday;
         }
     }
 }
