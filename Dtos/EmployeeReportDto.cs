@@ -7,5 +7,7 @@
 
         public int MonthlyWorkDays { get; set; }
         public int YearlyWorkDays { get; set; }
+
+        public bool IsBelowMinimum { get; set; }
     }
 }

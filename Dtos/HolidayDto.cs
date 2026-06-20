@@ -1,11 +1,14 @@
-﻿namespace ShiftPro.Dtos
+﻿using System.Text.Json.Serialization;
+
+namespace ShiftPro.Dtos
 {
     public class HolidayDto
     {
-        public DateOnly Date { get; set; }
+        [JsonPropertyName("Subject")]
+        public string Subject { get; set; } = "";
 
-        public bool IsHoliday { get; set; }
+        [JsonPropertyName("Start Date")]
+        public string StartDate { get; set; } 
 
-        public string HolidayName { get; set; } = string.Empty;
     }
 }

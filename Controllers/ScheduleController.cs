@@ -50,27 +50,40 @@ namespace ShiftPro.Controllers
             return Ok(result);
         }
 
-        [Authorize(Roles = "Employee")]
+        [Authorize(Roles = "Employee,Admin")]
         [HttpPost]
         public async Task<IActionResult> CreateSchedule([FromBody] CreateScheduleDto dto)
         {
             var user = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
             var userId = int.Parse(user);
 
-            if (dto.EmployeeId != userId)
+            if (dto.EmployeeId != userId && !User.IsInRole("Admin"))
             {
                 return Forbid();
             }
-            var result =await _service.CreateSchedule(dto);
 
-            if (result == null)
+            try
             {
-                return BadRequest("請確認員工是否存在、當天人數是否已滿，或該員工本月是否已達 15 天");
+                var result = await _service.CreateSchedule(dto);
+
+                if (result == null)
+                {
+                    return BadRequest("請確認員工是否存在、假日例假日不可排班、當天人數是否已滿，或該員工本月是否已達 15 天");
+
+                }
+                return Ok(new
+                {
+                    Message = "建立 Schedule 成功",
+                    Result = result
+                });
+
             }
-            return Ok(new {
-               Message="創立Schedule成功",
-                Result= result
-            });
+            catch (Exception ex) {
+                return BadRequest(new
+                {
+                    Message = ex.Message,
+                });
+            }
         }
 
         [Authorize(Roles = "Employee,Admin")]
@@ -97,7 +110,7 @@ namespace ShiftPro.Controllers
 
             if (result == false)
             {
-                return BadRequest("更新Schedule失敗");
+                return BadRequest("請確認員工是否存在、假日例假日不可排班、當天人數是否已滿，或該員工本月是否已達 15 天");
             }
             return Ok(new {
                 Message = "更新Schedule成功"

@@ -49,11 +49,11 @@ namespace ShiftPro.Services.Schedules
                             }).ToListAsync();
         }
 
-        public async Task<ScheduleDto> CreateSchedule(CreateScheduleDto dto)
+        public async Task<ScheduleDto?> CreateSchedule(CreateScheduleDto dto)
         {
-            var employeeExist =await  _context.Employees.AnyAsync(x => x.Id == dto.EmployeeId && x.IsActived);
+            var employeeExist =await  _context.Employees.FirstOrDefaultAsync(x => x.Id == dto.EmployeeId && x.IsActived);
 
-            if (!employeeExist)
+            if (employeeExist == null)
             {
                 _logger.Write(new Log {
                     Status=ApiResultStatus.Failed,
@@ -83,10 +83,24 @@ namespace ShiftPro.Services.Schedules
                 return null;
             }
 
+            var holiday = await _holidayService.GetHolidayAsync(dto.WorkDate);
 
-            var schedule = await _context.Schedules.AnyAsync(x => x.EmployeeId == dto.EmployeeId && x.WorkDate == dto.WorkDate);
+            if (holiday != null)
+            {
+                _logger.Write(new Log
+                {
+                    Status = ApiResultStatus.Failed,
+                    Message = holiday.Subject + "國定假日不可排班"
+                });
 
-            if (schedule)
+                throw new Exception(
+               $"{holiday.Subject}");
+            }
+
+            //當天是否排班
+            var duplicateSchedule = await _context.Schedules.AnyAsync(x => x.EmployeeId == dto.EmployeeId && x.WorkDate == dto.WorkDate);
+
+            if (duplicateSchedule)
             {
                 _logger.Write(new Log
                 {
@@ -126,16 +140,7 @@ namespace ShiftPro.Services.Schedules
                 return null;
             }
 
-            var holiday = await _holidayService.GetHolidayAsync(dto.WorkDate);
 
-            if (holiday is not null)
-            {
-                _logger.Write(new Log
-                {
-                    Status = ApiResultStatus.Failed,
-                    Message = "國定假日不可排班"
-                });
-            }
 
             var scheduleData = new Schedule
             {
@@ -149,24 +154,41 @@ namespace ShiftPro.Services.Schedules
             await _context.SaveChangesAsync();
 
 
-        var employeeName =await  _context.Schedules
-                                                            .Include(x => x.Employee)
-                                                            .Where(x=>x.EmployeeId==dto.EmployeeId)
-                                                            .Select(x => x.Employee.Name).FirstOrDefaultAsync();
+
+
             return new ScheduleDto
             {
+
                 Id = scheduleData.Id,
                 EmployeeId = scheduleData.EmployeeId,
-                EmployeeName = employeeName,
+                EmployeeName = employeeExist.Name,
                 WorkDate = scheduleData.WorkDate
             };
-        }
+            }
+
+     
 
         public async Task<bool> UpdateSchedule(int id, UpdateScheduleDto dto )
         {
-            var schedule=await _context.Schedules.FirstOrDefaultAsync(x => x.Id == id && x.EmployeeId==dto.EmployeeId );
+            var schedule=await _context.Schedules.FirstOrDefaultAsync(x => x.Id == id );
 
             if (schedule == null)
+            {
+                _logger.Write(new Log
+                {
+                    Status = ApiResultStatus.Failed,
+                    Message = "找不到此Schedule"
+                });
+                return false;
+            }
+
+            var newEmployeeId = dto.EmployeeId ?? schedule.EmployeeId;
+            var newWorkDate = dto.WorkDate ?? schedule.WorkDate;
+
+            var employeeExists = await _context.Employees
+                                                                         .AnyAsync(x => x.Id == newEmployeeId && x.IsActived);
+
+            if (!employeeExists)
             {
                 _logger.Write(new Log
                 {
@@ -176,32 +198,104 @@ namespace ShiftPro.Services.Schedules
                 return false;
             }
 
-            if (dto.EmployeeId.HasValue)
-            {
-                var employeeExists = await _context.Employees
-                                                                            .AnyAsync(x => x.Id == dto.EmployeeId.Value && x.IsActived);
 
-                if (!employeeExists)
+            //當天是否排班
+            var duplicateDate = await _context.Schedules.AnyAsync(x =>
+                x.EmployeeId == newEmployeeId &&
+                x.WorkDate == newWorkDate &&
+                x.Id != schedule.Id);  //不是目前這一筆(排除目前這筆)
+            
+
+            if (duplicateDate)
+            {
+                _logger.Write(new Log
                 {
-                    _logger.Write(new Log
-                    {
-                        Status = ApiResultStatus.Failed,
-                        Message = "找不到此使用者"
-                    });
-                    return false;
-                }
-
-                schedule.EmployeeId = dto.EmployeeId.Value;
+                    Status = ApiResultStatus.Failed,
+                    Message = "該員工當天已經排班"
+                });
+                return false;
             }
 
-            if (dto.WorkDate.HasValue)
+            //當天排班人數
+            var dailyCount = await _context.Schedules.CountAsync(x => x.WorkDate == newWorkDate &&
+                                                                                                        x.Id != schedule.Id);
+
+            if (dailyCount >= 2)
             {
-                schedule.WorkDate = dto.WorkDate.Value;
+                _logger.Write(new Log
+                {
+                    Status = ApiResultStatus.Failed,
+                    Message = "當天排班人數已滿"
+                });
+                return false;
             }
+
+
+            //當月排班人數
+            var monthlyCount = await _context.Schedules.CountAsync(x =>
+                                                                                         x.WorkDate.Year == newWorkDate.Year &&
+                                                                                         x.WorkDate.Month == newWorkDate.Month &&
+                                                                                         x.EmployeeId == newEmployeeId &&
+                                                                                         x.Id != schedule.Id);
+
+            if (monthlyCount >= 15)
+            {
+                _logger.Write(new Log
+                {
+                    Status = ApiResultStatus.Failed,
+                    Message = $"員工Id：{newEmployeeId} 當月排班天數不可超過15天"
+                });
+                return false;
+            }
+
+
+            //只允許下個月排班
+            if (!IsNextMonth(newWorkDate))
+            {
+                _logger.Write(new Log
+                {
+                    Status = ApiResultStatus.Failed,
+                    Message = "只允許添加下個月份的排班"
+                });
+                return false;
+            }
+
+            //不允許假日排班
+            if (IsWeekend(newWorkDate))
+            {
+                _logger.Write(new Log
+                {
+                    Status = ApiResultStatus.Failed,
+                    Message = "假日不可排班"
+                });
+                return false;
+            }
+
+
+
+
+            //不允許國定假日排班
+            var holiday = await _holidayService.GetHolidayAsync(dto.WorkDate.Value);
+
+            if (holiday != null)
+            {
+                _logger.Write(new Log
+                {
+                    Status = ApiResultStatus.Failed,
+                    Message = $"{holiday.Subject} 國定假日不可排班"
+                });
+
+                throw new Exception(
+               $"{holiday.Subject}");
+            }
+
+            schedule.EmployeeId = newEmployeeId;
+            schedule.WorkDate = newWorkDate;
 
             await _context.SaveChangesAsync();
 
             return true;
+            
         }
 
         public async Task<bool> DeleteSchedule(int id)
@@ -231,7 +325,7 @@ namespace ShiftPro.Services.Schedules
         {
            return  await _context.Schedules
                                     .Include(x => x.Employee)
-                                    .Where(x => x.WorkDate.Year == year && x.WorkDate.Month == month)
+                                    .Where(x => x.WorkDate.Year == year && x.WorkDate.Month == month &&x.Employee.IsActived)
                                     .OrderBy(x => x.WorkDate)
                                     .ThenBy(x => x.EmployeeId)
                                     .Select(x => new ScheduleDto {
@@ -250,7 +344,7 @@ namespace ShiftPro.Services.Schedules
             //當月資料
             var monthlyData = await _context.Schedules.
                 Include(x => x.Employee)
-                .Where(x => x.WorkDate.Year == year && x.WorkDate.Month == month)
+                .Where(x => x.WorkDate.Year == year && x.WorkDate.Month == month&&x.Employee.IsActived)
                 .GroupBy(x => new
                 {
                     x.EmployeeId,
@@ -267,7 +361,7 @@ namespace ShiftPro.Services.Schedules
              //年度資料
              var yearlyData= await _context.Schedules
                                                   . Include(x => x.Employee)
-                                                  .Where(x=>x.WorkDate.Year==year)
+                                                  .Where(x=>x.WorkDate.Year==year && x.Employee.IsActived)
                                                   .GroupBy(x=>x.EmployeeId)
                                                   .Select(g=>new {
                                                        EmployeeId=g.Key,
@@ -282,7 +376,8 @@ namespace ShiftPro.Services.Schedules
                 EmployeeId = x.EmployeeId,
                 EmployeeName = x.EmployeeName,
                 MonthlyWorkDays=x.MonthlyWorkDays,
-                YearlyWorkDays= yearlyData.GetValueOrDefault(x.EmployeeId, 0) //沒資料預設給0
+                YearlyWorkDays= yearlyData.GetValueOrDefault(x.EmployeeId, 0), //沒資料預設給0
+                IsBelowMinimum= x.MonthlyWorkDays<6
             })
                 .OrderByDescending(x => x.MonthlyWorkDays)
             .ToList();
@@ -303,5 +398,6 @@ namespace ShiftPro.Services.Schedules
         {
             return workDate.DayOfWeek== DayOfWeek.Saturday || workDate.DayOfWeek== DayOfWeek.Sunday;
         }
+
     }
 }
