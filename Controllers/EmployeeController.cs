@@ -48,7 +48,7 @@ namespace ShiftPro.Controllers
             return Ok(result);
         }
 
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> CreateEmployee( [FromBody] CreateEmployeeDto dto)
         {
