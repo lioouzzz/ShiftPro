@@ -47,6 +47,10 @@ namespace ShiftPro.Helpers
             string fileName = DateTime.Now.ToString("yyyy-MM-dd") + ".log";
             string filePath = Path.Combine(logFolder, fileName);
 
+            if (string.IsNullOrWhiteSpace(logFolder))
+            {
+                logFolder = Path.Combine(AppContext.BaseDirectory, "Logs");
+            }
             if (!Directory.Exists(logFolder))
             {
                 Directory.CreateDirectory(logFolder);
