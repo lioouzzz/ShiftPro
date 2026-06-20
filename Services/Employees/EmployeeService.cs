@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using ShiftPro.Data;
 using ShiftPro.Dtos;
 using ShiftPro.Enums;
@@ -54,11 +55,15 @@ namespace ShiftPro.Services.Employees
             var employee = new Employee
             {
                 Name = dto.Name,
-                Role = Role.Employee,
+                Account=dto.Account,
+                Role = dto.Role,
                 IsActived=true,
                 CreatedAt = DateTime.Now
-
             };
+
+            employee.PasswordHash =
+                BCrypt.Net.BCrypt.HashPassword(dto.Password);
+
             _context.Employees.Add(employee);
             _context.SaveChanges();
 

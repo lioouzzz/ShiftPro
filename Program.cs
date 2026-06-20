@@ -1,10 +1,15 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using ShiftPro.Data;
 using ShiftPro.Helpers;
 using ShiftPro.Interfaces;
+using ShiftPro.Services.Auth;
 using ShiftPro.Services.Employees;
 using ShiftPro.Services.Holidays;
+using ShiftPro.Services.JWT;
 using ShiftPro.Services.Schedules;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +37,35 @@ builder.Services.AddScoped<IScheduleService, ScheduleService>();
 
 //註冊  HolidayService
 builder.Services.AddScoped<IHolidayService, HolidayService>();
+
+//註冊  AuthService
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+//註冊 JwtService
+builder.Services.AddScoped<JwtService>();
+
+//jwt 驗證
+var jwtKey = builder.Configuration["JWT:Key"];
+
+builder.Services.AddAuthentication(options =>
+{
+    //預設用哪種方式辨認使用者
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+    .AddJwtBearer(options => {
+        options.TokenValidationParameters = new
+        TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["JWT:Issuer"],
+            ValidAudience = builder.Configuration["JWT:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        };
+    });
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -42,6 +76,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 

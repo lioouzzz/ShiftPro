@@ -25,7 +25,13 @@ namespace ShiftPro.Data
             modelBuilder.Entity<Schedule>()
                         .HasIndex(x => new { x.EmployeeId, x.WorkDate })
                         .IsUnique();
+
+
+            //modelBuilder.Entity<Employee>()
+            //            .HasIndex(x => x.Account)
+            //            .IsUnique();
         }
+
 
 
     }

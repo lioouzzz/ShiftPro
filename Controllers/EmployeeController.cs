@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ShiftPro.Dtos;
 using ShiftPro.Interfaces;
 using ShiftPro.Services.Employees;
+using System.Security.Claims;
 
 namespace ShiftPro.Controllers
 {
@@ -16,7 +18,7 @@ namespace ShiftPro.Controllers
             _service = service;
         }
 
-
+        [Authorize(Roles = "Admin,Boss")]
         [HttpGet]
         public async Task<IActionResult> GetAllEmployees()
         {
@@ -29,11 +31,15 @@ namespace ShiftPro.Controllers
             return Ok(result);
         }
 
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetEmployeeById([FromRoute] int id)
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetEmployeeById()
         {
-            var result =await  _service.GetEmployeeById(id);
+
+            var user = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+            var userId = int.Parse(user);
+
+            var result =await  _service.GetEmployeeById(userId);
 
             if (result == null)
             {
@@ -42,6 +48,7 @@ namespace ShiftPro.Controllers
             return Ok(result);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> CreateEmployee( [FromBody] CreateEmployeeDto dto)
         {
@@ -57,9 +64,19 @@ namespace ShiftPro.Controllers
             });
         }
 
+        [Authorize]
         [HttpPatch("{id}")]
         public async Task<IActionResult> UpdateEmployee([FromRoute] int id, [FromBody] UpdateEmployeeDto dto)
         {
+
+            var user = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+            var userId = int.Parse(user);
+
+            if (id != userId && !User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+
             var result = await  _service.UpdateEmployee(id,dto);
 
             if (result == false)
@@ -72,6 +89,7 @@ namespace ShiftPro.Controllers
             });
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEmployee([FromRoute] int id)
         {

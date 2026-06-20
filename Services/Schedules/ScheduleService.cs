@@ -25,6 +25,7 @@ namespace ShiftPro.Services.Schedules
         {
            return  await _context.Schedules
                                     .Include(x => x.Employee)
+                                    .OrderBy(x => x.WorkDate)
                                     .Select(x => new ScheduleDto
                                     {
                                         Id = x.Id,
@@ -34,18 +35,18 @@ namespace ShiftPro.Services.Schedules
                                     }).ToListAsync();
         }
 
-        public async Task<ScheduleDto?> GetSchedulesById(int id)
+        public async Task<List<ScheduleDto?>> GetSchedulesById(int id)
         {
             return await _context.Schedules
                             .Include(x => x.Employee)
-                            .Where(x => x.Id == id)
+                            .Where(x => x.Employee.Id == id)
                             .Select(x => new ScheduleDto
                             {
                                 Id = x.Id,
                                 EmployeeId = x.EmployeeId,
                                 EmployeeName = x.Employee.Name,
                                 WorkDate = x.WorkDate,
-                            }).FirstOrDefaultAsync();
+                            }).ToListAsync();
         }
 
         public async Task<ScheduleDto> CreateSchedule(CreateScheduleDto dto)
