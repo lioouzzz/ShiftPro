@@ -85,6 +85,7 @@ builder.Services.AddCors(options =>
 });
 var app = builder.Build();
 
+app.UseCors("AllowFrontend");
 app.UseSwagger();
 app.UseSwaggerUI();
 // Configure the HTTP request pipeline.
