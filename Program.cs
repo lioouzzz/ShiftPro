@@ -70,22 +70,19 @@ builder.Services.AddAuthentication(options =>
         };
     });
 
-
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend",
-        policy =>
-        {
-            policy.WithOrigins(
-                "https://shift-pro-frontend.vercel.app/"
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-        });
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("https://shift-pro-frontend.vercel.app")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
 });
+
+
 var app = builder.Build();
 
-app.UseCors("AllowFrontend");
 app.UseSwagger();
 app.UseSwaggerUI();
 // Configure the HTTP request pipeline.
@@ -95,7 +92,8 @@ app.UseSwaggerUI();
 //}
 
 app.UseHttpsRedirection();
-app.UseCors("Frontend");
+
+app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 
