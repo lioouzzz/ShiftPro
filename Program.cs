@@ -73,14 +73,16 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("Frontend", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
+    options.AddPolicy("AllowFrontend",
+        policy =>
+        {
+            policy.WithOrigins(
+                "https://shift-pro-frontend.vercel.app/"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+        });
 });
-
 var app = builder.Build();
 
 app.UseSwagger();
