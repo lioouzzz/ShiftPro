@@ -149,7 +149,7 @@ namespace ShiftPro.Controllers
             });
         }
 
-        [Authorize(Roles = "Boss,Admin")]
+        [Authorize]
         [HttpGet("Monthly")]
         public async Task<IActionResult> GetMonthlySchedules([FromQuery] int year, [FromQuery] int month)
         {
